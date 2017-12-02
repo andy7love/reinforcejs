@@ -31,6 +31,7 @@
 
   <style>
     body {
+      font-family: monospace;
       background-color: black;
       color: grey;
     }
@@ -41,7 +42,6 @@
     var positionSerie = new TimeSeries();
     var targetSerie = new TimeSeries();
     var throttleSerie = new TimeSeries();
-    var rewardsSerie = new TimeSeries();
 
     function currentTime() {
         return new Date().getTime();
@@ -66,7 +66,7 @@
     };
 
     function createTimeline() {
-        var chart = new SmoothieChart();
+        var chart = new SmoothieChart({minValue: 0, maxValue: 3});
         chart.addTimeSeries(positionSerie, { strokeStyle: 'rgba(0, 255, 0, 1)', fillStyle: 'rgba(0, 255, 0, 0.2)', lineWidth: 2 });
         chart.addTimeSeries(targetSerie, { strokeStyle: 'rgba(255, 0, 0, 1)', fillStyle: 'rgba(255, 0, 0, 0.1)', lineWidth: 2 });
         chart.streamTo(document.getElementById("altitude"), 500);
@@ -74,10 +74,6 @@
         chart = new SmoothieChart({minValue: 0, maxValue: 1});
         chart.addTimeSeries(throttleSerie, { strokeStyle: 'rgba(0, 0, 255, 1)', fillStyle: 'rgba(0, 0, 255, 0.2)', lineWidth: 2 });
         chart.streamTo(document.getElementById("throttle"), 500);
-
-        chart = new SmoothieChart({ minValue: -2, maxValue: 2 });
-        chart.addTimeSeries(rewardsSerie, { strokeStyle: 'rgba(200, 200, 0, 1)', fillStyle: 'rgba(200, 200, 0, 0.2)', lineWidth: 2 });
-        chart.streamTo(document.getElementById("rewards"), 500);
     }
 
     // Drone
@@ -97,7 +93,11 @@
         }
 
         this.action = () => {
-          this.throttle = clampInt(this.pid.update(this.y));
+          if(this.y <= 0 && this.pid.target <= 0) {
+            this.throttle = 0;
+          } else {
+            this.throttle = clampInt(this.pid.update(this.y));
+          }
         }
     }
 
@@ -118,10 +118,13 @@
         var throttleToForceFactor = 15;
         var ticks = 0;
 
+        var targetSpan = document.getElementById('spanTarget');
+        var altitudeSpan = document.getElementById('spanAltitude');
+        var throttleSpan = document.getElementById('spanThrottle');
+
         var tick = () => {
             // get target
             var currentTarget = parseFloat($('#targetSlider').val());
-            var prevAltitude = drone.y;
 
             // apply action
             drone.setTarget(currentTarget);
@@ -145,6 +148,10 @@
             throttleSerie.append(time, drone.throttle);
             //rewardsSerie.append(time, reward);
 
+            targetSpan.innerHTML = currentTarget.toString();
+            altitudeSpan.innerHTML = drone.y.toString();
+            throttleSpan.innerHTML = drone.throttle.toString();
+            
             setTimeout(() => {
                 ticks++;
                 tick();
@@ -163,7 +170,13 @@
     <h5>Throttle</h5>
     <canvas id="throttle" width="700" height="270"></canvas>
 
-    <h5>Reward score</h5>
-    <canvas id="rewards" width="700" height="270"></canvas>
+    <br /><br />
+    Desired altitude = <span id="spanTarget" style="color:red;"></span>
+    
+    <br />
+    Current altitude = <span id="spanAltitude" style="color:lightGreen;"></span>
+    
+    <br />
+    Throttle = <span id="spanThrottle" style="color:lightBlue;"></span>
  </body>
 </html>
