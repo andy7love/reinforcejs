@@ -83,9 +83,9 @@
         this.throttle = 0;
 
         this.pid = new Controller({
-          k_p: 2,
+          k_p: 0.5,
           k_i: 0.5,
-          k_d: 0.1
+          k_d: 0.05
         });
 
         this.setTarget = (newTarget) => {
@@ -93,7 +93,7 @@
         }
 
         this.action = () => {
-          if(this.y <= 0 && this.pid.target <= 0) {
+          if(this.y <= 0.01 && this.pid.target <= 0.01) {
             this.throttle = 0;
           } else {
             this.throttle = clampInt(this.pid.update(this.y));
@@ -104,7 +104,7 @@
     // World
     function World() {
         this.gravity = -9.8;
-        this.airPressureDecreaseGradient = 0;
+        this.airPressureGradient = 1;
     }
 
     function start() {
@@ -132,7 +132,9 @@
 
             // apply physics
             var motorsTickForce = (drone.throttle * throttleToForceFactor) / fps;
-            drone.verticalSpeed = drone.verticalSpeed + earthTickForce + motorsTickForce;
+            var airPressure = world.airPressureGradient / (1 + drone.y);
+            var realMotorsTickForce = motorsTickForce * (1 + airPressure);
+            drone.verticalSpeed = drone.verticalSpeed + earthTickForce + realMotorsTickForce;
             drone.y = drone.y + drone.verticalSpeed;
 
             // touch floor.
